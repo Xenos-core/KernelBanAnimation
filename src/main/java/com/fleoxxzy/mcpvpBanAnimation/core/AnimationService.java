@@ -47,8 +47,11 @@ public final class AnimationService {
     /** Copies everything the animation needs from the player. Must run on the player's thread. */
     public PlayerSnapshot snapshot(Player player) {
         ReplicaSpec spec = ReplicaSpec.capture(player);
-        // Pre-fetch the skin colors for the ArmorStand leather fallback.
-        skinColors.get(spec.skinUrl());
+        // Pre-fetch the skin colors for the ArmorStand leather fallback. This runs on every quit,
+        // so skip it when the replica is a Mannequin and the colors would never be used.
+        if (!ReplicaStage.usesMannequin(configs.config().replica().type())) {
+            skinColors.get(spec.skinUrl());
+        }
         boolean bypass;
         try {
             bypass = player.hasPermission(BYPASS_PERMISSION);
