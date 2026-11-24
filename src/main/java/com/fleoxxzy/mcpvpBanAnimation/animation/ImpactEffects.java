@@ -55,6 +55,14 @@ final class ImpactEffects {
         Location anchor = ctx.anchor();
         double radiusSq = shake.radius() * shake.radius();
         for (Player player : Bukkit.getOnlinePlayers()) {
+            // When we own the player (always on Spigot/Paper), check the distance now instead of
+            // queuing a task per pulse for every player on the server.
+            if (ctx.platform().scheduler().isOwnedByCurrentThread(player)) {
+                Location loc = player.getLocation();
+                if (loc.getWorld() != world || loc.distanceSquared(anchor) > radiusSq) {
+                    continue;
+                }
+            }
             for (int pulse = 0; pulse < shake.pulses(); pulse++) {
                 float yaw = ctx.random().nextFloat() * 360f;
                 ctx.platform().scheduler().runForLater(player, () -> {
