@@ -67,6 +67,12 @@ final class BoneBurst {
         private double vz;
         private boolean resting;
         private ItemDisplay display;
+        // Last floor lookup. A bone usually stays in the same block column for many ticks, so this
+        // saves scanning up to 24 blocks per bone per tick.
+        private int floorX = Integer.MIN_VALUE;
+        private int floorZ;
+        private int floorFromY;
+        private double floorCached;
 
         Bone(AnimationContext ctx, PluginConfig.Bones cfg, Location origin, boolean skull, Random r) {
             this.ctx = ctx;
@@ -195,16 +201,27 @@ final class BoneBurst {
                 return groundFallback + rest;
             }
             int startY = (int) Math.floor(fromY);
+            int cx = (int) Math.floor(bx);
+            int cz = (int) Math.floor(bz);
+            if (cx == floorX && cz == floorZ && startY == floorFromY) {
+                return floorCached;
+            }
+            double result = groundFallback + rest;
             int minY = Math.max(world.getMinHeight(), startY - 24);
             for (int by = startY; by >= minY; by--) {
-                Block block = world.getBlockAt((int) Math.floor(bx), by, (int) Math.floor(bz));
+                Block block = world.getBlockAt(cx, by, cz);
                 if (!block.isPassable()) {
                     BoundingBox box = block.getBoundingBox();
                     double top = box.getVolume() > 0 ? box.getMaxY() : by + 1.0;
-                    return top + rest;
+                    result = top + rest;
+                    break;
                 }
             }
-            return groundFallback + rest;
+            floorX = cx;
+            floorZ = cz;
+            floorFromY = startY;
+            floorCached = result;
+            return result;
         }
 
         /** Never load a chunk from the animation tick, and never read a region we don't own (Folia). */
